@@ -10,7 +10,6 @@ import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -38,13 +37,14 @@ public class OAuth2LoginSecurityConfig {
         http //
                 .authorizeHttpRequests(authorize -> authorize //
                         .anyRequest().authenticated()) //
-                .oauth2Login(Customizer.withDefaults());
+                .oauth2Login(oauth2 -> oauth2 //
+                        .userInfoEndpoint(userInfo -> userInfo //
+                                .oidcUserService(this.oidcUserService())));
         return http.build();
     }
 
     // https://docs.spring.io/spring-security/reference/servlet/oauth2/login/advanced.html#oauth2login-advanced-map-authorities-oauth2userservice
-    @Bean
-    public OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
+    private OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService() {
         final OidcUserService delegate = new OidcUserService();
 
         return (userRequest) -> {
@@ -78,7 +78,7 @@ public class OAuth2LoginSecurityConfig {
 
     // Spring OAuth2 uses default Scopes Not Roles for Authorization
     // org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter
-    public class KeycloakAuthoritiesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+    private class KeycloakAuthoritiesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
         @Override
         public Collection<GrantedAuthority> convert(Jwt jwt) {
